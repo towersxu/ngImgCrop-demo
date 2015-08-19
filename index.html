@@ -1,0 +1,118 @@
+<!doctype html>
+<html >
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+    <!--<link rel="stylesheet" href="styles/main.css">-->
+    <style>
+      .cropArea {
+        background: #E4E4E4;
+        overflow: hidden;
+        width:500px;
+        height:350px;
+      }
+      img-crop{width:100%;height:100%;display:block;position:relative;overflow:hidden}img-crop canvas{display:block;position:absolute;top:50%;left:50%;outline:0;-webkit-tap-highlight-color:transparent}
+    </style>
+    <script src="./bower_components/angular/angular.js"></script>
+    <script src="./bower_components/angular-ui-router/release/angular-ui-router.min.js"></script>
+    <script src="./bower_components/ng-file-upload/ng-file-upload.min.js"></script>
+    <!--<script src="./bower_components/ngImgCrop/compile/unminified/ng-img-crop.js"></script>-->
+    <script src="./scripts/ng-img-crop.js"></script>
+    <script>
+      angular.module('app', ['ngImgCrop','ngFileUpload'])
+              .controller('Ctrl', function($scope,Upload) {
+                $scope.myImage='';
+                $scope.myCroppedImage='';
+                $scope.myAreaCoords = {};
+
+                var handleFileSelect=function(evt) {
+                  console.log(arguments);
+                  var file=evt.currentTarget.files[0];
+                  var reader = new FileReader();
+                  reader.onload = function (evt) {
+                    $scope.$apply(function($scope){
+                      $scope.myImage=evt.target.result;
+                    });
+                  };
+                  reader.readAsDataURL(file);
+                };
+                angular.element(document.querySelector('#fileInput')).on('change',handleFileSelect);
+//                angular.element(document.querySelector('#img')).on('change',handleFileSelect);
+                $scope.selectFile = function(file){
+                  console.log(arguments);
+                  var reader = new FileReader();
+                  reader.onload = function (evt) {
+                    $scope.$apply(function($scope){
+                      $scope.myImage=evt.target.result;
+                    });
+                  };
+                  reader.readAsDataURL(file);
+                };
+                function dataURLtoBlob(dataurl) {
+                  var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                          bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+                  while(n--){
+                    u8arr[n] = bstr.charCodeAt(n);
+                  }
+                  return new Blob([u8arr], {type:mime});
+                }
+                $scope.sendImage = function(){
+                  var blob = dataURLtoBlob($scope.myCroppedImage);
+//                  var fd = new FormData();
+//                  fd.append("image", blob, "image.png");
+//                  var xhr = new XMLHttpRequest();
+//                  xhr.open('POST', '/server', true);
+//                  xhr.send(fd)
+//                  console.log($scope.myCroppedImage);
+                  Upload.upload({
+                    url:'http://192.168.1.121:3000/file-upload',
+                    fields:{
+                      'msg':'123',
+                      'type':'png'
+                    },
+                    file:blob
+                  }).progress(function(evt){
+                    console.log(evt);
+                  }).success(function(res){
+                    console.log('success');
+                    console.log(res);
+                  });
+                };
+                $scope.sendMedia = function(files){
+                  if(files && files.length){
+                    for(var i=0;i<files.length;i++){
+                      var file = files[i];
+                      Upload.upload({
+                        url:'http://192.168.1.121:3000/file-upload',
+                        fields:{
+                          'msg':'123'
+                        },
+                        file:file
+                      }).progress(function(evt){
+                        console.log(evt);
+                      }).success(function(res){
+                        console.log('success');
+                        console.log(res);
+                      });
+                    }
+                  }
+                }
+              });
+
+    </script>
+  </head>
+  <body ng-app="app" ng-controller="Ctrl">
+  <div>Select an image file: <input type="file" id="fileInput" /></div>
+  <div class="cropArea">
+    <img-crop image="myImage" result-image="myCroppedImage" area-type="circle" area-coords="myAreaCoords"></img-crop>
+  </div>
+  <div>Cropped Image:</div>
+  <div class="cropped"><img ng-src="{{myCroppedImage}}" width="{{myAreaCoords.w}}" height="{{myAreaCoords.h}}"/></div>
+
+  <button ngf-select id="img" ngf-change="sendMedia($files)">button</button>
+  <button ngf-select  ngf-change="selectFile($file)">button1</button>
+  <button ng-click="sendImage()">sure</button>
+  </body>
+</html>
